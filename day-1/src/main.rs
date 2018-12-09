@@ -9,11 +9,13 @@ fn main() -> io::Result<()> {
             if mode == "final" {
                 let mut input = String::new();
                 io::stdin().read_to_string(&mut input)?;
-                print_exit(get_final(input.lines()));
+                let commands = input.lines().collect();
+                print_exit(get_final(commands));
             } else if mode == "repeated" {
                 let mut input = String::new();
                 io::stdin().read_to_string(&mut input)?;
-                print_exit(get_repeated(input.lines()));
+                let commands = input.lines().collect();
+                print_exit(get_repeated(commands));
             } else {
               print_exit(Err("Use final or repeated as the first argument".to_string()));
             }
@@ -24,8 +26,7 @@ fn main() -> io::Result<()> {
     }
 }
 
-
-fn get_final<'a>(commands: impl Iterator<Item=&'a str>) -> Result<i64, String> {
+fn get_final<'a>(commands: Vec<&'a str>) -> Result<i64, String> {
     let mut freq = 0i64;
     for command in commands {
         match adjustment(command) {
@@ -36,11 +37,12 @@ fn get_final<'a>(commands: impl Iterator<Item=&'a str>) -> Result<i64, String> {
     Ok(freq)
 }
 
-fn get_repeated<'a>(commands: impl Iterator<Item=&'a str>) -> Result<i64, String> {
+fn get_repeated<'a>(commands: Vec<&'a str>) -> Result<i64, String> {
     let mut freqs = Vec::new();
     let mut freq = 0i64;
     freqs.push(freq);
-    for command in commands {
+
+    for command in commands.iter().cycle() {
         match adjustment(command) {
             Ok(adj) => freq = freq + adj,
             Err(err) => return Err(err),
@@ -50,7 +52,7 @@ fn get_repeated<'a>(commands: impl Iterator<Item=&'a str>) -> Result<i64, String
         }
         freqs.push(freq);
     }
-    Err("couldn't find a repeated frequency".to_string())
+    Err("shouldnt be here".to_string())
 }
 
 fn print_exit(res: Result<i64, String>) -> ! {
@@ -104,7 +106,7 @@ fn test_get_final_example_1() {
 #[test]
 fn test_get_final_example_2() {
     let lines = vec!("+1","+1","-2");
-    let res = get_final(lines.into_iter());
+    let res = get_final(lines);
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), 0)
 }
@@ -112,7 +114,7 @@ fn test_get_final_example_2() {
 #[test]
 fn test_get_final_example_3() {
     let lines = vec!("-1","-2","-3");
-    let res = get_final(lines.into_iter());
+    let res = get_final(lines);
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), -6)
 }
@@ -120,36 +122,36 @@ fn test_get_final_example_3() {
 #[test]
 fn test_get_final_bad_sign() {
     let lines = vec!("+1","*3");
-    let res = get_final(lines.into_iter());
+    let res = get_final(lines);
     assert!(res.is_err());
 }
 
 #[test]
 fn test_get_final_not_number() {
     let lines = vec!("+1","-abc");
-    let res = get_final(lines.into_iter());
+    let res = get_final(lines);
     assert!(res.is_err());
 }
 
 #[test]
 fn test_get_repeated_example_1() {
     let lines = vec!("+1","-1", "+1", "-1");
-    let res = get_repeated(lines.into_iter());
+    let res = get_repeated(lines);
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), 0)
 }
 
 #[test]
 fn test_get_repeated_example_2() {
-    let lines = vec!("+3","+3","+4","-2","-4","+3","+3","+4","-2","-4");
-    let res = get_repeated(lines.into_iter());
+    let lines = vec!("+3","+3","+4","-2","-4");
+    let res = get_repeated(lines);
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), 10)
 }
 
 #[test]
 fn test_get_repeated_example_3() {
-    let lines = vec!("+7","+7","-2","-7","-4","+7","+7","-2","-7","-4","+7","+7","-2","-7","-4");
+    let lines = vec!("+7","+7","-2","-7","-4");
     let res = get_repeated(lines.into_iter());
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), 14)
