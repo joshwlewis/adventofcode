@@ -1,6 +1,7 @@
 use std::io::{self, Read};
 use std::process::exit;
 use std::env::args;
+use std::collections::HashSet;
 
 fn main() -> io::Result<()> {
     let arg = args().nth(1);
@@ -38,9 +39,9 @@ fn get_final<'a>(commands: Vec<&'a str>) -> Result<i64, String> {
 }
 
 fn get_repeated<'a>(commands: Vec<&'a str>) -> Result<i64, String> {
-    let mut freqs = Vec::new();
+    let mut freqs = HashSet::new();
     let mut freq = 0i64;
-    freqs.push(freq);
+    freqs.insert(freq);
 
     for command in commands.iter().cycle() {
         match adjustment(command) {
@@ -50,7 +51,7 @@ fn get_repeated<'a>(commands: Vec<&'a str>) -> Result<i64, String> {
         if freqs.contains(&freq) {
             return Ok(freq);
         }
-        freqs.push(freq);
+        freqs.insert(freq);
     }
     Err("shouldnt be here".to_string())
 }
@@ -97,7 +98,7 @@ fn adjustment<'a>(command: &'a str) -> Result<i64, String> {
 #[test]
 fn test_get_final_example_1() {
     let lines = vec!("+1","+1","+1");
-    let res = get_final(lines.into_iter());
+    let res = get_final(lines);
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), 3)
 }
@@ -152,7 +153,7 @@ fn test_get_repeated_example_2() {
 #[test]
 fn test_get_repeated_example_3() {
     let lines = vec!("+7","+7","-2","-7","-4");
-    let res = get_repeated(lines.into_iter());
+    let res = get_repeated(lines);
     assert!(res.is_ok());
     assert_eq!(res.unwrap(), 14)
 }
