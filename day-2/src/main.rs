@@ -1,14 +1,23 @@
 use std::io::{self, BufRead};
+use std::env::args;
 use std::collections::HashMap;
 
-#[macro_use] extern crate itertools;
+extern crate itertools;
 use itertools::multipeek;
 
 fn main() {
-    let stdin = io::stdin();
-    let ids = stdin.lock().lines().filter_map(|l| l.ok());
-    let (twos, threes) = housesum(ids);
-    println!("housesum: {} * {} = {}", twos, threes, twos * threes);
+    let arg = args().nth(1).unwrap();
+    if arg == "checksum" {
+        let stdin = io::stdin();
+        let ids = stdin.lock().lines().filter_map(|l| l.ok());
+        let (twos, threes) = housesum(ids);
+        println!("{} * {} = {}", twos, threes, twos * threes);
+    } else if arg == "findpair" {
+        let stdin = io::stdin();
+        let ids = stdin.lock().lines().filter_map(|l| l.ok());
+        let (one, two) = findpair(ids).unwrap();
+        println!("{},{}", one, two)
+    }
 }
 
 fn housesum(ids: impl Iterator<Item=String>) -> (i64, i64) {
@@ -23,7 +32,7 @@ fn housesum(ids: impl Iterator<Item=String>) -> (i64, i64) {
 }
 
 #[test]
-fn test_housesum_example() {
+fn test_housesum() {
     let ids = vec!("abcdef","bababc","abbcde","abcccd","aabcdd","abcdee","ababab");
     assert_eq!((4,3), housesum(ids.into_iter().map(|i| i.to_string())))
 }
@@ -48,7 +57,7 @@ fn idsum(id: &str) -> (bool, bool) {
 }
 
 #[test]
-fn test_idsum_examples() {
+fn test_idsum() {
     assert_eq!((false, false), idsum("abcdef"));
     assert_eq!((true, true), idsum("bababc"));
     assert_eq!((true, false), idsum("abbcde"));
@@ -76,12 +85,12 @@ fn ispair(a: &str, b: &str) -> bool {
 }
 
 #[test]
-fn test_ispair_examples() {
+fn test_ispair() {
     assert_eq!(false, ispair("abcde", "axcye"));
     assert_eq!(true, ispair("fghij", "fguij"));
 }
 
-fn findpair<'a>(ids: impl Iterator<Item=&'a str>) -> Option<(&'a str, &'a str)> {
+fn findpair<'a>(ids: impl Iterator<Item=String>) -> Option<(String, String)> {
     let mut peeker = multipeek(ids);
     loop {
         match peeker.next() {
@@ -89,8 +98,8 @@ fn findpair<'a>(ids: impl Iterator<Item=&'a str>) -> Option<(&'a str, &'a str)> 
                 loop {
                     match peeker.peek() {
                         Some(idb) => {
-                            if ispair(ida, idb) {
-                                return Some((ida, idb))
+                            if ispair(&ida, &idb) {
+                                return Some((ida.to_string(), idb.to_string()))
                             }
                         }
                         None => {
@@ -109,8 +118,8 @@ fn findpair<'a>(ids: impl Iterator<Item=&'a str>) -> Option<(&'a str, &'a str)> 
 #[test]
 fn test_findpair() {
     let ids = vec!("abcde","fghij","klmno","pqrst","fguij","axcye","wvxyz");
-    let result = findpair(ids.iter().map(|i| i.as_ref()));
+    let result = findpair(ids.iter().map(|i| i.to_string()));
     assert!(result.is_some());
-    assert_eq!(result.unwrap(), ("fghij", "fguij"));
+    assert_eq!(result.unwrap(), ("fghij".to_string(), "fguij".to_string()));
 }
 
