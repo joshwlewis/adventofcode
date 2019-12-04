@@ -4,22 +4,35 @@ fn main() {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
 
-    let intcode: Vec<usize> = input.split(',').filter_map(|i|
+    let incode: Vec<usize> = input.split(',').filter_map(|i|
         i.trim().parse::<usize>().ok()
     ).collect();
-    println!("Input:\n {:?}", intcode);
+    println!("Input:\n {:?}", incode);
 
-    let alarmcode = setup_1202_alarm(intcode);
-    println!("With 1202 alarm:\n {:?}", alarmcode);
+    let alarmcode = set_input(&incode, 12, 2);
+    println!("Input with 1202 alarm:\n {:?}", alarmcode);
 
     let resultcode = execute(alarmcode);
     println!("Result:\n {:?}", resultcode);
+
+    let target: usize = 19690720;
+    let (noun, verb) = find_inputs(incode, target).unwrap();
+    println!("Inputs required for result {}: {},{}", target, noun, verb);
 }
 
-pub fn setup_1202_alarm(code: Vec<usize>) -> Vec<usize> {
+pub fn find_inputs(code: Vec<usize>, target: usize) -> Option<(usize,usize)> {
+    let mut inputs = (0..100).flat_map(|n| (0..100).map(move |v| (n,v)));
+    inputs.find(|x| {
+        let icode = set_input(&code, x.0, x.1);
+        let rcode = execute(icode);
+        rcode[0] == target
+    })
+}
+
+pub fn set_input(code: &Vec<usize>, noun: usize, verb: usize) -> Vec<usize> {
     let mut acode = code.to_vec();
-    acode[1] = 12;
-    acode[2] = 2;
+    acode[1] = noun;
+    acode[2] = verb;
     acode
 }
 
