@@ -10,6 +10,7 @@ fn main() {
         uni.ensure_orbitee(names[1], names[0]);
     }
     println!("Orbit Sum: {}", uni.orbit_sum());
+    println!("Distance YOU to SAN: {}", uni.orbital_distance("YOU","SAN").unwrap() - 2);
 }
 
 #[derive(Debug,Clone)]
@@ -58,6 +59,22 @@ impl Universe {
     fn find(&self, name: &str) -> Option<&Planet> {
         self.0.iter().find(|p| p.name == *name)
     }
+
+    fn orbital_distance(&self, from: &str, to: &str) -> Option<usize> {
+        match (self.find(from), self.find(to)) {
+            (Some(fp), Some(tp)) => {
+                let fos = fp.orbitees(self);
+                let tos = tp.orbitees(self);
+                let common_orbit = fos.iter()
+                    .find(|fon| tos.iter().find(|ton| fon == ton).is_some());
+                match common_orbit {
+                    Some(on) => Some(fp.orbital_distance(on, self).unwrap() + tp.orbital_distance(on, self).unwrap()),
+                    None => None,
+                }
+            },
+            (_, _) => None,
+        }
+    }
 }
 
 impl Planet {
@@ -72,6 +89,34 @@ impl Planet {
         match self.orbitee_planet(uni) {
             Some(p) => 1 + p.orbit_sum(uni),
             None => 0
+        }
+    }
+
+
+    fn orbitees(&self, uni: &Universe) -> Vec<String> {
+        match self.orbitee_planet(uni) {
+            Some(p) => {
+                let mut orbs = p.orbitees(uni);
+                orbs.insert(0, p.name.to_string());
+                orbs
+            },
+            None => Vec::new(),
+        }
+    }
+
+    fn orbital_distance(&self, name: &str, uni: &Universe) -> Option<usize> {
+        if self.name == name {
+            Some(0)
+        } else {
+            match self.orbitee_planet(uni) {
+                Some(p) => {
+                    match p.orbital_distance(name, uni) {
+                        Some(n) => Some(n + 1),
+                        None => None,
+                    }
+                },
+                None => None,
+            }
         }
     }
 }
