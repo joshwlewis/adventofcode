@@ -1,4 +1,6 @@
 use std::io::{self, Read};
+use std::sync::mpsc::{channel,Sender,Receiver};
+use std::{thread, time};
 
 fn main() {
     let mut input_code = String::new();
@@ -15,7 +17,9 @@ fn main() {
 
 pub fn find_max_output(icode: &Vec<isize>) -> isize {
     let phase_settings: Vec<Vec<isize>> = (0..3125).map(|n| {
-        (0..5).map(|p| n / 5isize.pow(p) % 5isize).rev().collect::<Vec<isize>>()
+        (0..5).map(|p| n / 5isize.pow(p) % 5isize)
+              .map(|n| n + 5).rev()
+              .collect::<Vec<isize>>()
     }).filter(|phases| {
         let mut mphases = phases.to_vec();
         mphases.sort();
@@ -26,6 +30,7 @@ pub fn find_max_output(icode: &Vec<isize>) -> isize {
     let mut max = 0;
     for phases in phase_settings {
         let output = execute_chain(&icode, &phases);
+        println!("Phase Settings {:?}:{}", phases, output);
         if output > max {
             max = output;
         }
@@ -33,20 +38,44 @@ pub fn find_max_output(icode: &Vec<isize>) -> isize {
     max
 }
 
-pub fn execute_chain(icode: &Vec<isize>, inputs: &Vec<isize>) -> isize {
-    let mut output: isize = 0;
-    for inp in inputs {
-        output = *execute(icode.clone(), vec!(*inp, output)).first().unwrap();
+pub fn execute_chain(icode: &Vec<isize>, phases: &Vec<isize>) -> isize {
+    let mut sndrs: Vec<Sender<isize>> = Vec::new();
+    let mut rcvrs: Vec<Receiver<isize>> = Vec::new();
+    for _i in 0..phases.len() {
+        let (s,r) = channel();
+        sndrs.push(s);
+        rcvrs.push(r);
     };
-    output
+    let lastrcvr = rcvrs.remove(rcvrs.len()-1);
+    rcvrs.insert(0, lastrcvr);
+
+    let mut threads = Vec::new();
+    for i in 0..phases.len() {
+        let previ = if i == 0 { phases.len() - 1} else { i - 1 };
+        let phssndr = sndrs[previ].clone();
+        let phs = phases[i];
+
+        phssndr.send(phs).unwrap();
+        if i == 0 { phssndr.send(0).unwrap(); }
+
+        let code = icode.to_vec();
+        let sndr = sndrs[i].clone();
+        let rcvr = rcvrs.remove(0);
+        let t = thread::spawn(move || {
+            execute(&code, 0, sndr, rcvr)
+        });
+        threads.push(t);
+    };
+
+    let mut results = Vec::new();
+    for t in threads {
+        let r = t.join().unwrap().unwrap();
+        results.push(r);
+    }
+    *results.last().unwrap()
 }
 
-pub fn execute(code: Vec<isize>, inputs: Vec<isize>) -> Vec<isize> {
-    let outputs: Vec<isize> = Vec::new();
-    execute_pos(&code, 0, inputs, outputs).unwrap()
-}
-
-fn execute_pos(code: &Vec<isize>, pos: usize, inputs: Vec<isize>, outputs: Vec<isize>) -> Result<Vec<isize>, String> {
+fn execute(code: &Vec<isize>, pos: usize, sndr: Sender<isize>, rcvr: Receiver<isize>) -> Result<isize, String> {
     let mut mcode = code.to_vec();
     let mut ins_chars = format!("{:05}", code[pos]).chars().collect::<Vec<char>>();
     let ins_opcode = ins_chars.split_off(3).iter().collect::<String>().parse::<usize>();
@@ -55,34 +84,36 @@ fn execute_pos(code: &Vec<isize>, pos: usize, inputs: Vec<isize>, outputs: Vec<i
     match ins_opcode {
         Ok(1) => {
             mcode[code[pos+3] as usize] = modal_fetch(code, ins_params[2], pos+1) + modal_fetch(code, ins_params[1], pos+2);
-            execute_pos(&mcode, pos+4, inputs, outputs)
+            execute(&mcode, pos+4, sndr, rcvr)
         },
         Ok(2) => {
             mcode[code[pos+3] as usize] = modal_fetch(code, ins_params[2], pos+1) * modal_fetch(code, ins_params[1], pos+2);
-            execute_pos(&mcode, pos+4, inputs, outputs)
+            execute(&mcode, pos+4, sndr, rcvr)
         },
         Ok(3)=> {
-            let mut minputs = inputs.to_vec();
-            let input = minputs.remove(0);
+            let input = rcvr.recv().unwrap();
             mcode[code[pos+1] as usize] = input;
-            execute_pos(&mcode, pos+2, minputs, outputs)
+            execute(&mcode, pos+2, sndr, rcvr)
         },
         Ok(4)=> {
             let output = modal_fetch(code, ins_params[2], pos+1);
-            let mut moutputs = outputs.to_vec();
-            moutputs.push(output);
-            execute_pos(&mcode, pos+2, inputs, moutputs)
+            match sndr.send(output) {
+                Ok(_) => execute(&mcode, pos+2, sndr, rcvr),
+                Err(msg) => {
+                    Ok(output)
+                },
+            }
         },
         Ok(5) => {
             match modal_fetch(code, ins_params[2], pos+1) {
-                0 => execute_pos(&mcode, pos+3, inputs, outputs),
-                _ => execute_pos(&mcode, modal_fetch(code, ins_params[1], pos+2) as usize, inputs, outputs),
+                0 => execute(&mcode, pos+3, sndr, rcvr),
+                _ => execute(&mcode, modal_fetch(code, ins_params[1], pos+2) as usize, sndr, rcvr),
             }
         },
         Ok(6) => {
             match modal_fetch(code, ins_params[2], pos+1) {
-                0 => execute_pos(&mcode, modal_fetch(code, ins_params[1], pos+2) as usize, inputs, outputs),
-                _ => execute_pos(&mcode, pos+3, inputs, outputs),
+                0 => execute(&mcode, modal_fetch(code, ins_params[1], pos+2) as usize, sndr, rcvr),
+                _ => execute(&mcode, pos+3, sndr, rcvr),
             }
         },
         Ok(7) => {
@@ -92,7 +123,7 @@ fn execute_pos(code: &Vec<isize>, pos: usize, inputs: Vec<isize>, outputs: Vec<i
                 0
             };
             mcode[code[pos+3] as usize] = val;
-            execute_pos(&mcode, pos +4, inputs, outputs)
+            execute(&mcode, pos +4, sndr, rcvr)
         }
         Ok(8) => {
             let val = if modal_fetch(code, ins_params[2], pos+1) == modal_fetch(code, ins_params[1], pos+2) {
@@ -101,9 +132,9 @@ fn execute_pos(code: &Vec<isize>, pos: usize, inputs: Vec<isize>, outputs: Vec<i
                 0
             };
             mcode[code[pos+3] as usize] = val;
-            execute_pos(&mcode, pos +4, inputs, outputs)
+            execute(&mcode, pos +4, sndr, rcvr)
         },
-        Ok(99) => Ok(outputs),
+        Ok(99) => Ok(0),
         Ok(i) => Err(format!("Unknown instruction {} at position {}", i, pos)),
         Err(msg) => Err(format!("Error at position {}: {}", pos, msg)),
     }
