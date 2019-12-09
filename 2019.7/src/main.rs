@@ -30,7 +30,6 @@ pub fn find_max_output(icode: &Vec<isize>) -> isize {
     let mut max = 0;
     for phases in phase_settings {
         let output = execute_chain(&icode, &phases);
-        println!("Phase Settings {:?}:{}", phases, output);
         if output > max {
             max = output;
         }
@@ -175,15 +174,6 @@ mod tests {
         let phases = vec!(1,0,4,3,2);
         let code = vec!(3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0);
         let result = execute_chain(&code, &phases);
-        assert_eq!(65210, result);
-
-    }
-
-    #[test]
-    fn test_find_max_3() {
-        let code = vec!(3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0);
-        let result = find_max_output(&code);
-        let phases = vec!(1,0,4,3,2);
         assert_eq!(65210, result);
 
     }
