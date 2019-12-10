@@ -13,7 +13,7 @@ fn main() {
     let points = instructions.map(|i| trace_instruction(i))
         .map(|p| p.into_iter().collect::<HashSet<(isize,isize)>>())
         .collect::<Vec<HashSet<(isize,isize)>>>();
-    let intersections: Vec<&(isize,isize)> = points[0].union(&points[1]).collect();
+    let intersections: Vec<&(isize,isize)> = points[0].intersection(&points[1]).collect();
 
     let mut distances = intersections.iter().map(|(x,y)| x.abs() + y.abs()).collect::<Vec<isize>>();
     distances.sort();
