@@ -12,11 +12,32 @@ fn main() {
         .filter_map(|i| i.trim().parse::<isize>().ok())
         .collect();
 
-    let result = countpaint(&intcode);
-    println!("Result: {:?}", result);
+    let blackhullpaint = painthull(&intcode, 0);
+    printhull(&blackhullpaint);
+    println!("Black Hull Paint Count: {:?}", blackhullpaint.keys().len());
+    let whitehullpaint = painthull(&intcode, 1);
+    printhull(&whitehullpaint);
 }
 
-pub fn countpaint(code: &Vec<isize>) -> usize {
+pub fn printhull(hull: &HashMap<Panel, usize>) {
+    let panels: Vec<Panel> = hull.iter().map(|(p, _c)| p.clone()).collect();
+    let xmin = panels.iter().map(|p| p.x).min().unwrap();
+    let xmax = panels.iter().map(|p| p.x).max().unwrap();
+    let ymin = panels.iter().map(|p| p.y).min().unwrap();
+    let ymax = panels.iter().map(|p| p.y).max().unwrap();
+
+    for y in (ymin..=ymax).rev() {
+        for x in xmin..=xmax {
+            match hull.get(&Panel { x: x, y: y }) {
+                Some(1) => print!("🎅"),
+                _ => print!("👾"),
+            }
+        }
+        print!("\n");
+    }
+}
+
+pub fn painthull(code: &Vec<isize>, color: usize) -> HashMap<Panel, usize> {
     let mcode: Vec<isize> = code.to_vec();
     let (comsndr, comrcvr) = channel();
     let (botsndr, botrcvr) = channel();
@@ -28,25 +49,19 @@ pub fn countpaint(code: &Vec<isize>) -> usize {
 
     let botthread = thread::Builder::new()
         .name("Paint Bot".to_string())
-        .spawn(move || paintio(botrcvr, comsndr));
+        .spawn(move || paintio(color, botrcvr, comsndr));
 
     comthread.unwrap().join().unwrap().unwrap();
-    let hull = botthread.unwrap().join().unwrap();
-    println!("Hull looks like this: {:?}", hull);
-    hull.values().len()
+    botthread.unwrap().join().unwrap()
 }
 
-pub fn paintio(i: Receiver<isize>, o: Sender<isize>) -> HashMap<Panel, usize> {
+pub fn paintio(c: usize, i: Receiver<isize>, o: Sender<isize>) -> HashMap<Panel, usize> {
     let mut hull: HashMap<Panel, usize> = HashMap::new();
     let mut cpanel = Panel { x: 0, y: 0 };
     let mut cdir = Dir('^');
+    let mut ccolor = c;
     loop {
-        let color = match hull.get(&cpanel) {
-            Some(c) => *c,
-            None => 0usize,
-        };
-
-        match o.send(color as isize) {
+        match o.send(ccolor as isize) {
             Ok(_) => (),
             Err(_msg) => break,
         };
@@ -65,6 +80,11 @@ pub fn paintio(i: Receiver<isize>, o: Sender<isize>) -> HashMap<Panel, usize> {
             Err(_msg) => break,
         }
         cpanel = cpanel.next(cdir);
+
+        ccolor = match hull.get(&cpanel) {
+            Some(c) => *c,
+            None => 0usize,
+        };
     }
     hull
 }
