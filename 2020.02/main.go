@@ -19,7 +19,8 @@ func main() {
 
 	rdr := bufio.NewReader(f)
 
-	validCount := 0
+	validSledCount := 0
+	validTobogganCount := 0
 	for {
 		text, err := rdr.ReadString('\n')
 		if err == io.EOF {
@@ -27,17 +28,21 @@ func main() {
 		}
 		check(err)
 		pass := NewPassFromText(text)
-		if pass.IsValid() {
-			validCount++
+		if pass.IsValidSled() {
+			validSledCount++
+		}
+		if pass.IsValidTobbggan() {
+			validTobogganCount++
 		}
 	}
 
-	fmt.Printf("Valid Passwords: %d\n", validCount)
+	fmt.Printf("Valid Sled Passwords: %d\n", validSledCount)
+	fmt.Printf("Valid Toboggan Passwords: %d\n", validTobogganCount)
 }
 
 type Pass struct {
-	Min  int
-	Max  int
+	I    int
+	J    int
 	Char rune
 	Word string
 }
@@ -63,15 +68,31 @@ func NewPassFromText(text string) Pass {
 	return Pass{min, max, char, word}
 }
 
-func (p *Pass) IsValid() bool {
+func (p *Pass) IsValidSled() bool {
 	var matchCount int
 	for _, c := range p.Word {
 		if c == p.Char {
 			matchCount++
 		}
 	}
-	if matchCount >= p.Min && matchCount <= p.Max {
+	if matchCount >= p.I && matchCount <= p.J {
 		return true
 	}
 	return false
+}
+
+func (p *Pass) IsValidTobbggan() bool {
+	iv := p.getRuneAt(p.I) == p.Char
+	jv := p.getRuneAt(p.J) == p.Char
+	if (iv || jv) && (iv != jv) {
+		return true
+	}
+	return false
+}
+
+func (p *Pass) getRuneAt(loc int) rune {
+	if len(p.Word) < loc || loc <= 0 {
+		return 0
+	}
+	return rune(p.Word[loc - 1])
 }
