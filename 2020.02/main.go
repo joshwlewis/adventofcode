@@ -40,10 +40,15 @@ func main() {
 	fmt.Printf("Valid Toboggan Passwords: %d\n", validTobogganCount)
 }
 
+// Pass represents a password policy + password entry
 type Pass struct {
-	I    int
-	J    int
+	// The first operand in the password policy
+	I int
+	// The second operand in the password policy
+	J int
+	// Char is the character this policy pertains to
 	Char rune
+	// Word is the password
 	Word string
 }
 
@@ -58,14 +63,14 @@ func check(err error) {
 func NewPassFromText(text string) Pass {
 	text = strings.TrimSpace(text)
 	matches := rx.FindStringSubmatch(text)
-	min, err := strconv.Atoi(matches[1])
+	i, err := strconv.Atoi(matches[1])
 	check(err)
-	max, err := strconv.Atoi(matches[2])
+	j, err := strconv.Atoi(matches[2])
 	check(err)
 	char := []rune(matches[3])[0]
 	word := matches[4]
 
-	return Pass{min, max, char, word}
+	return Pass{i, j, char, word}
 }
 
 func (p *Pass) IsValidSled() bool {
@@ -94,5 +99,5 @@ func (p *Pass) getRuneAt(loc int) rune {
 	if len(p.Word) < loc || loc <= 0 {
 		return 0
 	}
-	return rune(p.Word[loc - 1])
+	return rune(p.Word[loc-1])
 }
