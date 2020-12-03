@@ -17,9 +17,15 @@ func main() {
 
 	tm, err := NewTreeMapFromReader(f)
 	check(err)
-	trees := tm.TreesOnPath(3, 1)
+	path := Path{3, 1}
+	trees := tm.TreesOnPath(path)
 
-	fmt.Printf("Found %d trees on the path\n", trees)
+	fmt.Printf("Found %d trees on the path %v\n", trees, path)
+
+	paths := []Path{{1,1},{3,1},{5,1},{7,1},{1,2}}
+	treeprod := tm.TreeProdOnPaths(paths)
+
+	fmt.Printf("Tree product for paths %v\n", treeprod)
 	os.Exit(0)
 }
 
@@ -33,6 +39,10 @@ type TreeRow []bool
 type TreeMap struct {
 	Width int
 	Rows []TreeRow
+}
+type Path struct {
+	dx int
+	dy int
 }
 
 func NewTreeMapFromReader(f io.Reader) (TreeMap, error) {
@@ -64,20 +74,29 @@ func (tm *TreeMap) HasTree(x int, y int) bool {
 }
 
 func (tm *TreeMap) IsExit(y int) bool {
-	return y == len(tm.Rows)
+	return y > len(tm.Rows)
 }
 
-func (tm *TreeMap) TreesOnPath(dx int, dy int) int {
+func (tm *TreeMap) TreesOnPath(p Path) int {
 	var x, y, count int
 	for {
-		if tm.HasTree(x, y) {
-			count++
-		}
 		if tm.IsExit(y) {
 			break
 		}
-		x+=dx
-		y+=dy
+		if tm.HasTree(x, y) {
+			count++
+		}
+		x+=p.dx
+		y+=p.dy
 	}
 	return count
+}
+
+func (tm *TreeMap) TreeProdOnPaths(paths []Path) (int) {
+	prod := 1
+	for _, path := range paths {
+		count := tm.TreesOnPath(path)
+		prod *= count
+	}
+	return prod
 }
