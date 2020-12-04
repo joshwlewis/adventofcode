@@ -135,7 +135,7 @@ func validY(v string, min, max int) bool {
 }
 
 func validHgt(s string) bool {
-	re := regexp.MustCompile(`(\d+)([a-z]+)`)
+	re := regexp.MustCompile(`^(\d+)([a-z]+)$`)
 	matches := re.FindStringSubmatch(s)
 
 	if len(matches) != 3 {
@@ -146,15 +146,15 @@ func validHgt(s string) bool {
 	unit := matches[2]
 	switch unit {
 	case "cm":
-		if val < 150 || val > 193 {
-			return false
+		if val >= 150 && val <= 193 {
+			return true
 		}
 	case "in":
-		if val < 59 || val > 76 {
-			return false
+		if val >= 59 && val <= 76 {
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func validEcl(s string) bool {
@@ -167,11 +167,11 @@ func validEcl(s string) bool {
 }
 
 func validHcl(s string) bool {
-	re := regexp.MustCompile(`#[a-f0-9]{6}`)
+	re := regexp.MustCompile(`^#[a-f0-9]{6}$`)
 	return re.Match([]byte(s))
 }
 
 func validPid(s string) bool {
-	re := regexp.MustCompile(`\d{9}`)
+	re := regexp.MustCompile(`^\d{9}$`)
 	return re.Match([]byte(s))
 }
