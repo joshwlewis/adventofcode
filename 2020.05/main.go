@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 func main() {
@@ -15,11 +16,18 @@ func main() {
 
 	f, err := os.Open(filepath.Join(wd, "input.txt"))
 	check(err)
-    
-	maxID, err := MaxSeatID(f)
+
+	seats, err := ParseSeats(f)
+	check(err)
+
+	seats.Sort()
+
+	maxID := seats[len(seats)-1].ID()
+	missingID, err := seats.Missing()
 	check(err)
 
 	fmt.Println("Max Seat ID:", maxID)
+	fmt.Println("Missing Seat ID:", missingID)
 }
 
 func check(err error) {
@@ -28,39 +36,57 @@ func check(err error) {
 	}
 }
 
-func MaxSeatID(r io.Reader) (int, error) {
-	var max int
-	scnr := bufio.NewScanner(r)
-	for scnr.Scan() {
-		row, col, err := ParseSeat(scnr.Text())
-		if err != nil {
-			return max, err
-		}
-		id := SeatID(row, col)
-		if id > max {
-			max = id
-		}
-	}
-	if scnr.Err() != nil {
-		return 0, scnr.Err()
-	}
-	return max, nil
+type Seats []Seat
+type Seat struct {
+	Row int
+	Col int
 }
 
-func ParseSeat(seat string) (row, col int, err error) {
-	row, err = decodePartition(seat[0:7], 'F', 'B')
-	if err != nil {
-		return 0, 0, err
+func ParseSeats(r io.Reader) (seats Seats, err error) {
+	scnr := bufio.NewScanner(r)
+	for scnr.Scan() {
+		seat, err := ParseSeat(scnr.Text())
+		if err != nil {
+			return seats, err
+		}
+		seats = append(seats, seat)
 	}
-	col, err = decodePartition(seat[7:10], 'L', 'R')
-	if err != nil {
-		return 0, 0, err
-	}
+	err = scnr.Err()
 	return
 }
 
-func SeatID(row, col int) int {
-	return (row * 8) + col
+func (ss Seats) Sort() {
+	sort.Slice(ss, func(i, j int) bool {
+		return ss[i].ID() < ss[j].ID()
+	})
+}
+
+func (ss Seats) Missing() (int, error) {
+	for i, s := range ss {
+		if s.Row == 0 || s.Row == 127 {
+			continue
+		}
+		if ss[i+1].ID() > s.ID()+1 {
+			return s.ID() + 1, nil
+		}
+	}
+	return 0, fmt.Errorf("Did not find missing seat")
+}
+
+func ParseSeat(seat string) (Seat, error) {
+	row, err := decodePartition(seat[0:7], 'F', 'B')
+	if err != nil {
+		return Seat{}, err
+	}
+	col, err := decodePartition(seat[7:10], 'L', 'R')
+	if err != nil {
+		return Seat{}, err
+	}
+	return Seat{row, col}, nil
+}
+
+func (s Seat) ID() int {
+	return (s.Row * 8) + s.Col
 }
 
 func decodePartition(chars string, lowerChar, upperChar rune) (int, error) {
@@ -68,7 +94,7 @@ func decodePartition(chars string, lowerChar, upperChar rune) (int, error) {
 	exp := len(chars)
 	for exp != 0 {
 		max *= 2
-		exp -= 1
+		exp--
 	}
 	for _, c := range chars {
 		adj := (max - min + 1) / 2
