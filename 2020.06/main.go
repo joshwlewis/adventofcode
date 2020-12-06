@@ -26,19 +26,17 @@ func main() {
 
 func SumGroupAnswers(f io.Reader) (int, int, error) {
 	scnr := bufio.NewScanner(f)
-	var group string
-	var oneYesSum, allYesSum, groupCount int
+	var group []string
+	var oneYesSum, allYesSum int
 	for scnr.Scan() {
 		person := strings.TrimSpace(scnr.Text())
 		if person != "" {
-			group += person
-			groupCount++
+			group = append(group, person)
 		} else {
-			as := NewAnsSet(group)
+			as := NewAnsSet(strings.Join(group, ""))
 			oneYesSum += as.YesCount(1)
-			allYesSum += as.YesCount(groupCount)
-			group = ""
-			groupCount = 0
+			allYesSum += as.YesCount(len(group))
+			group = []string{}
 		}
 	}
 	err := scnr.Err()
@@ -50,9 +48,6 @@ type AnsSet map[rune]int
 func NewAnsSet(answers string) AnsSet {
 	as := AnsSet{}
 	for _, answer := range answers {
-		if answer < 97 || answer > 122 {
-			continue
-		}
 		as[answer]++
 	}
 	return as
