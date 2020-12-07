@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -21,11 +22,13 @@ func main() {
 	br, err := ParseBagRules(f)
 	check(err)
 
-	outerBagSum := br.SumOuterBagsFor("shiny gold")
-	fmt.Println("Outer bag option count for shiny gold:", outerBagSum)
+	outerBagSum := br.OuterSum("shiny gold")
+	innerBagSum := br.InnerSum("shiny gold")
+	fmt.Println("Outer bag count for shiny gold:", outerBagSum)
+	fmt.Println("Inner bag sum for shiny gold:", innerBagSum)
 }
 
-type BagRules map[string][]string
+type BagRules map[string]map[string]int
 
 var outerBagPattern = regexp.MustCompile(`^([a-z|\s]+) bags contain (.+)\.$`)
 var innerBagPattern = regexp.MustCompile(`^(\d+) ([a-z|\s]+) bags?$`)
@@ -37,13 +40,17 @@ func ParseBagRules(r io.Reader) (br BagRules, err error) {
 		line := strings.TrimSpace(scnr.Text())
 		oMatches := outerBagPattern.FindStringSubmatch(line)
 		oBag := oMatches[1]
-		var iBags []string
+		iBags := make(map[string]int)
 		if oMatches[2] != "" {
 			for _, iString := range strings.Split(oMatches[2], ",") {
 				iString := strings.TrimSpace(iString)
 				iMatches := innerBagPattern.FindStringSubmatch(iString)
 				if len(iMatches) == 3 {
-					iBags = append(iBags, iMatches[2])
+					iBagCount, err := strconv.Atoi(iMatches[1])
+					if err != nil {
+						return br, err
+					}
+					iBags[iMatches[2]] = iBagCount
 				}
 			}
 		}
@@ -53,7 +60,7 @@ func ParseBagRules(r io.Reader) (br BagRules, err error) {
 	return
 }
 
-func (brs BagRules) SumOuterBagsFor(tBag string) int {
+func (brs BagRules) OuterSum(tBag string) int {
 	cache := make(map[string]*bool)
 	var sum int
 	for oBag := range brs {
@@ -66,12 +73,13 @@ func (brs BagRules) SumOuterBagsFor(tBag string) int {
 
 var t = true
 var f = false
+
 func (brs BagRules) CanContain(outer string, inner string, cache map[string]*bool) bool {
 	if cache[outer] != nil {
 		return *cache[outer]
 	}
-	for _, iBag := range brs[outer] {
-		if iBag == inner {
+	for iBag := range brs[outer] {
+		if iBag == inner  {
 			cache[outer] = &t
 			return true
 		}
@@ -82,6 +90,13 @@ func (brs BagRules) CanContain(outer string, inner string, cache map[string]*boo
 	}
 	cache[outer] = &f
 	return false
+}
+
+func (brs BagRules) InnerSum(outer string) (sum int) {
+	for iBagColor, iBagCount := range brs[outer] {
+		sum += iBagCount * (brs.InnerSum(iBagColor) + 1)
+	}
+	return
 }
 
 func check(err error) {
