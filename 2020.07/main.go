@@ -24,6 +24,7 @@ func main() {
 
 	outerBagSum := br.OuterSum("shiny gold")
 	innerBagSum := br.InnerSum("shiny gold")
+
 	fmt.Println("Outer bag count for shiny gold:", outerBagSum)
 	fmt.Println("Inner bag sum for shiny gold:", innerBagSum)
 }
@@ -60,35 +61,24 @@ func ParseBagRules(r io.Reader) (br BagRules, err error) {
 	return
 }
 
-func (brs BagRules) OuterSum(tBag string) int {
-	cache := make(map[string]*bool)
-	var sum int
+func (brs BagRules) OuterSum(tBag string) (sum int) {
 	for oBag := range brs {
-		if brs.CanContain(oBag, tBag, cache) {
+		if brs.CanContain(oBag, tBag) {
 			sum++
 		}
 	}
-	return sum
+	return
 }
 
-var t = true
-var f = false
-
-func (brs BagRules) CanContain(outer string, inner string, cache map[string]*bool) bool {
-	if cache[outer] != nil {
-		return *cache[outer]
-	}
+func (brs BagRules) CanContain(outer string, inner string) bool {
 	for iBag := range brs[outer] {
-		if iBag == inner  {
-			cache[outer] = &t
+		if iBag == inner {
 			return true
 		}
-		if brs.CanContain(iBag, inner, cache) {
-			cache[outer] = &t
+		if brs.CanContain(iBag, inner) {
 			return true
 		}
 	}
-	cache[outer] = &f
 	return false
 }
 
