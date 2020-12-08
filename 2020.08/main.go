@@ -22,10 +22,13 @@ func main() {
 	instructions, err := ParseInstructions(f)
 	check(err)
 
-	xidx, pidx, acc, err := instructions.Execute(0, 0, []int{})
-	check(err)
+	acc1, err := instructions.Execute(0, 0, []int{})
+	fmt.Printf("Looping program accumulator: %d, Error: %v\n", acc1, err)
 
-	fmt.Printf("After line %d, exited at line %d, with an accumulator at %d\n", pidx, xidx, acc)
+	acc2, err := instructions.ModExecute()
+	check(err)
+	fmt.Printf("Modified program accumulator: %d\n", acc2)
+
 }
 
 type Instruction struct {
@@ -37,6 +40,12 @@ type Instructions []Instruction
 
 var instructionPattern = regexp.MustCompile(`^([a-z]{3}) ([+|-]\d+)$`)
 
+type InstructionLoopError struct{}
+
+func (ile InstructionLoopError) Error() string {
+	return "Infinite Loop"
+}
+
 func ParseInstructions(r io.Reader) (Instructions, error) {
 	scnr := bufio.NewScanner(r)
 	var ins Instructions
@@ -44,37 +53,63 @@ func ParseInstructions(r io.Reader) (Instructions, error) {
 		line := strings.TrimSpace(scnr.Text())
 		matches := instructionPattern.FindStringSubmatch(line)
 		if len(matches) != 3 {
-			return ins, fmt.Errorf("bad instruction %s. Matches: %+v.", line, matches)
+			return ins, fmt.Errorf("bad instruction %s, matches: %+v", line, matches)
 		}
 		op := matches[1]
 		arg, err := strconv.Atoi(matches[2])
 		if err != nil {
 			return ins, err
-	    }
+		}
 		ins = append(ins, Instruction{op, arg})
 	}
 	err := scnr.Err()
 	return ins, err
 }
 
-func (ins Instructions) Execute(idx int, acc int, ids []int) (int, int, int, error) {
+func (ins Instructions) Execute(idx int, acc int, ids []int) (int, error) {
 	for _, id := range ids {
 		if id == idx {
-			return idx, ids[len(ids)-1], acc, nil
+			return acc, InstructionLoopError{}
 		}
 	}
-	in := ins[idx]
 	ids = append(ids, idx)
-	switch in.Operation {
-		case "acc":
-			return ins.Execute(idx+1, acc+in.Argument, ids)
-		case "jmp":
-			return ins.Execute(idx+in.Argument, acc, ids)
-		case "nop":
-			return ins.Execute(idx+1, acc, ids)
-		default:
-			return 0, 0, 0, fmt.Errorf("No matching command")
+	if idx >= len(ins) {
+		return acc, nil
 	}
+	in := ins[idx]
+	switch in.Operation {
+	case "acc":
+		return ins.Execute(idx+1, acc+in.Argument, ids)
+	case "jmp":
+		return ins.Execute(idx+in.Argument, acc, ids)
+	case "nop":
+		return ins.Execute(idx+1, acc, ids)
+	default:
+		return acc, fmt.Errorf("unknown command: %s", in.Operation)
+	}
+}
+
+func (ins Instructions) ModExecute() (int, error) {
+	for i, in := range ins {
+		var newOp string
+		if in.Operation == "nop" {
+			newOp = "jmp"
+		}
+		if in.Operation == "jmp" {
+			newOp = "nop"
+		}
+		if newOp != "" {
+			newIns := make(Instructions, len(ins))
+			copy(newIns, ins)
+			newIns[i] = Instruction{newOp, in.Argument}
+			acc, err := newIns.Execute(0, 0, []int{})
+			if _, ok := err.(InstructionLoopError); ok {
+				continue
+			}
+			return acc, err
+		}
+	}
+	return 0, fmt.Errorf("couldn't make a valid program")
 }
 
 func check(err error) {
