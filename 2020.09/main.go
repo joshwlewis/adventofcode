@@ -25,6 +25,9 @@ func main() {
 	check(err)
 
 	fmt.Println("Invalid Number: ", invNum)
+
+	contSum, err := d.FindContiguousSum(invNum)
+	fmt.Println("Contiguous Sum: ", contSum)
 }
 
 type Data []int
@@ -64,6 +67,33 @@ i:
 		return in, nil
 	}
 	return 0, fmt.Errorf("No invalid number found")
+}
+
+func (d Data) FindContiguousSum(target int) (int, error) {
+	for i := range d {
+		count := 2
+		var sum int
+		for sum < target && count < len(d) {
+			sum = 0
+			group := d[i:i+count]
+			for _, n := range group {
+				sum+=n
+			}
+			if sum == target {
+				min, max := group[0], group[0]
+				for _, v := range group {
+					if v < min {
+						min = v
+					} else if v > max {
+						max = v
+					}
+				}
+				return min+max, nil
+			}
+			count++
+		}
+	}
+	return 0, fmt.Errorf("Couldn't find contiguous sum")
 }
 
 func check(err error) {
