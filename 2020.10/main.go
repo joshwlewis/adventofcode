@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -27,13 +26,10 @@ func main() {
 	sort.Sort(js)
 
 	ones, threes := js.ChainDiffs()
-	check(err)
+	combs := js.ChainCombos()
 
 	fmt.Printf("jolt chain ones:%d, threes:%d, prod:%d\n", ones, threes, ones*threes)
-
-	arrs := js.ChainArrangements()
-
-	fmt.Printf("jolt chain arrangements: %d\n", arrs)
+	fmt.Printf("jolt chain combos: %d\n", combs)
 }
 
 type Joltages []int
@@ -66,26 +62,33 @@ func (js Joltages) Len() int           { return len(js) }
 func (js Joltages) Swap(i, j int)      { js[i], js[j] = js[j], js[i] }
 func (js Joltages) Less(i, j int) bool { return js[i] < js[j] }
 
-func (js Joltages) ChainArrangements() int {
-	var p2, p7 float64
-	for i := 1; i < len(js)-1; i++ {
-		if i >= 3 && js[i+1]-js[i-3] == 4 {
-			p7++
-			p2 -= 2
-			continue
-		}
-		if js[i+1]-js[i-1] == 2 {
-			p2++
-		}
+var comboMultipliers = []int{1, 1, 2, 4, 7}
+
+func (js Joltages) ChainCombos() int {
+	sum := 1
+	for _, g := range js.ConsGroups() {
+		mult := comboMultipliers[len(g)-1]
+		sum *= mult
 	}
-	return int(math.Pow(2.0, p2) * math.Pow(7.0, p7))
+	return sum
+}
+
+func (js Joltages) ConsGroups() (gjs []Joltages) {
+	gjs = []Joltages{{js[0]}}
+	for i := 1; i < len(js); i++ {
+		if js[i]-js[i-1] != 1 {
+			gjs = append(gjs, Joltages{})
+		}
+		gjs[len(gjs)-1] = append(gjs[len(gjs)-1], js[i])
+	}
+	return gjs
 }
 
 func (js Joltages) ChainDiffs() (ones int, threes int) {
 	for i := 1; i < len(js); i++ {
-		if js[i] - js[i-1] == 1 {
+		if js[i]-js[i-1] == 1 {
 			ones++
-		} else if js[i] - js[i-1] == 3 {
+		} else if js[i]-js[i-1] == 3 {
 			threes++
 		}
 	}

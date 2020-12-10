@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-var example1 = Joltages{28,33,18,42,31,14,46,20,48,47,24,23,49,45,19,38,39,11,1,32,25,35,8,17,7,9,4,2,34,10,3}.WithTerminals()
+var example1 = Joltages{28, 33, 18, 42, 31, 14, 46, 20, 48, 47, 24, 23, 49, 45, 19, 38, 39, 11, 1, 32, 25, 35, 8, 17, 7, 9, 4, 2, 34, 10, 3}.WithTerminals()
 
 func TestExample1Diffs(t *testing.T) {
 	sort.Sort(example1)
@@ -16,9 +16,9 @@ func TestExample1Diffs(t *testing.T) {
 	}
 }
 
-func TestExample1Arrangements(t *testing.T) {
+func TestExample1Combos(t *testing.T) {
 	sort.Sort(example1)
-	got := example1.ChainArrangements()
+	got := example1.ChainCombos()
 	want := 19208
 	if got != want {
 		t.Errorf("Wanted %d, Got %d", want, got)
