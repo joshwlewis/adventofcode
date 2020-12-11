@@ -18,17 +18,22 @@ var example = `
 	L.LLLLL.LL
 `
 
-func TestStabilize(t *testing.T) {
+func testStabilized(s Searcher, want int, t *testing.T) {
 	rdr := bytes.NewReader([]byte(example))
 	room, err := ReadRoom(rdr)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v\n", err)
 	}
 
+	room.Searcher = s
 	newR := room.Stabilize()
 	got := newR.Occupancies()
-	want := 37
 	if got != want {
 		t.Fatalf("wanted %d, got %d", want, got)
 	}
+}
+
+func TestStabilized(t *testing.T) {
+	testStabilized(AdjSearcher{}, 37, t)
+	testStabilized(VisSearcher{}, 26, t)
 }
