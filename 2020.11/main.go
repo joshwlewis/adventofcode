@@ -32,15 +32,14 @@ func main() {
 type Tile rune
 type Tiles []Tile
 type Room struct {
-	Rows []Tiles
+	Rows     []Tiles
 	Searcher Searcher
 }
-type AdjSearcher struct {}
-type VisSearcher struct {}
+type AdjSearcher struct{}
+type VisSearcher struct{}
 type Searcher interface {
+	Tolerance() int
 	Nearby(Room, int, int) Tiles
-	Occupied(Room, int, int) bool
-	Vacant(Room, int, int) bool
 }
 
 var empty = Tile('L')
@@ -50,7 +49,6 @@ var wall = Tile('+')
 
 func ReadRoom(r io.Reader) (Room, error) {
 	scnr := bufio.NewScanner(r)
-	var y int
 	rows := []Tiles{}
 	for scnr.Scan() {
 		line := strings.TrimSpace(scnr.Text())
@@ -62,7 +60,6 @@ func ReadRoom(r io.Reader) (Room, error) {
 			row = append(row, Tile(c))
 		}
 		rows = append(rows, row)
-		y++
 	}
 	err := scnr.Err()
 	return Room{Rows: rows}, err
@@ -88,11 +85,11 @@ func (r Room) Advance() Room {
 				newRow = append(newRow, floor)
 				continue
 			}
-			if tile == empty && r.Searcher.Vacant(r, x, y) {
+			if tile == empty && r.VacantArea(x, y) {
 				newRow = append(newRow, occupied)
 				continue
 			}
-			if tile == occupied && r.Searcher.Occupied(r, x, y) {
+			if tile == occupied && r.OccupiedArea(x, y) {
 				newRow = append(newRow, empty)
 				continue
 			}
@@ -120,28 +117,21 @@ func (r Room) Eq(otherR Room) bool {
 	return true
 }
 
-func vacantArea(r Room, s Searcher, x, y int) bool {
-	for _, t := range s.Nearby(r, x, y) {
+func (r Room) VacantArea(x, y int) bool {
+	for _, t := range r.Searcher.Nearby(r, x, y) {
 		if t == occupied {
 			return false
 		}
 	}
 	return true
 }
-func (rs AdjSearcher) Vacant(r Room, x, y int) bool {
-	return vacantArea(r, rs, x, y)
-}
 
-func (rs VisSearcher) Vacant(r Room, x, y int) bool {
-	return vacantArea(r, rs, x, y)
-}
-
-func occupiedArea(r Room, s Searcher, maxCount, x, y int) bool {
+func (r Room) OccupiedArea(x, y int) bool {
 	occupiedCount := 0
-	for _, t := range s.Nearby(r, x, y) {
+	for _, t := range r.Searcher.Nearby(r, x, y) {
 		if t == occupied {
 			occupiedCount++
-			if occupiedCount >= maxCount {
+			if occupiedCount >= r.Searcher.Tolerance() {
 				return true
 			}
 		}
@@ -149,12 +139,11 @@ func occupiedArea(r Room, s Searcher, maxCount, x, y int) bool {
 	return false
 }
 
-func (rs AdjSearcher) Occupied(r Room, x, y int) bool {
-	return occupiedArea(r, rs, 4, x, y)
+func (rs AdjSearcher) Tolerance() int {
+	return 4
 }
-
-func (rs VisSearcher) Occupied(r Room, x, y int) bool {
-	return occupiedArea(r, rs, 5, x, y)
+func (rs VisSearcher) Tolerance() int {
+	return 5
 }
 
 func (rs AdjSearcher) Nearby(r Room, x, y int) Tiles {
@@ -176,11 +165,11 @@ func (rs VisSearcher) Nearby(r Room, x, y int) (tiles Tiles) {
 			if dx == 0 && dy == 0 {
 				continue
 			}
-			for i, j:= x+dx, y+dy; true; i, j = i+dx, j+dy {
+			for i, j := x+dx, y+dy; true; i, j = i+dx, j+dy {
 				t := r.Tile(i, j)
 				if t != floor {
 					tiles = append(tiles, t)
-					break 
+					break
 				}
 			}
 		}
