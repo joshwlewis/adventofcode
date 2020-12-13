@@ -20,10 +20,10 @@ func main() {
 
 	time, busIDs, busOffs, err := ReadSchedule(f)
 	check(err)
-	fmt.Println("Bus Info", time, busIDs)
+	fmt.Println("Bus Input Data", time, busIDs, busOffs)
 
 	bID, wait := NextBus(time, busIDs)
-	fmt.Printf("Need to wait %d minutes for Bus %d. Prod: %d", wait, bID, wait*bID)
+	fmt.Printf("Wait %d minutes for Bus %d. Prod: %d\n", wait, bID, wait*bID)
 
 	contestTime := ContestTime(busIDs, busOffs)
 	fmt.Println("Contest Time:", contestTime)
@@ -44,26 +44,18 @@ func NextBus(dTime int, bIDs []int) (int, int) {
 	return minID, minWait
 }
 
-func ContestTime(busIDs []int, busOffs []int) (int) {
-	var step, stepI int
-	for i, busID := range busIDs {
-		if busID > step {
-			step = busID
-			stepI = i
-		}
-	}
-	T: for t := (step-stepI)*100; true; t+=step {
-		for i, busID := range busIDs {
-			if (t + busOffs[i]) % busID != 0 {
+func ContestTime(busIDs []int, busOffs []int) (t int) {
+	T: for {
+		tStep := 1
+		for i, busOff := range busOffs {
+			if (t + busOff) % busIDs[i] != 0 {
+				t+=tStep
 				continue T
 			}
-			if i > 1 {
-				fmt.Printf("t: %d, i: %d\n", t, i)
-			}
+			tStep *= busIDs[i]
 		}
-		return t
+		return
 	}
-	return 0
 }
 
 func GetWait(dTime, bID int) int {
