@@ -21,8 +21,11 @@ func main() {
 	ins, err := ReadInstructions(f)
 	check(err)
 
-	sum := ins.Sum()
-	fmt.Println("Memory Sum:", sum)
+	sumv1 := ins.SumV1()
+	fmt.Println("Memory Sum ChipV1:", sumv1)
+
+	sumv2 := ins.SumV2()
+	fmt.Println("Memory Sum ChipV2:", sumv2)
 }
 
 type Instruction struct {
@@ -32,10 +35,10 @@ type Instruction struct {
 }
 type Instructions []Instruction
 
-func (is Instructions) Sum() (sum int) {
+func (is Instructions) SumV1() (sum int) {
 	mem := make(map[int]int)
 	for _, i := range is {
-		mem[i.Address] = i.Result()
+		mem[i.Address] = i.GetValue()
 	}
 	for _, v := range mem {
 		sum+=v
@@ -43,7 +46,20 @@ func (is Instructions) Sum() (sum int) {
 	return
 }
 
-func (i Instruction) Result() (int) {
+func (is Instructions) SumV2() (sum int) {
+	mem := make(map[int]int)
+	for _, i := range is {
+		for _, a := range i.GetAddresses() {
+		  mem[a] = i.Value
+		}
+	}
+	for _, v := range mem {
+		sum+=v
+	}
+	return
+}
+
+func (i Instruction) GetValue() (int) {
 	var val int
 	for p := 0; p < len(i.Mask); p++ {
 		mChar := i.Mask[len(i.Mask)-p-1]
@@ -55,6 +71,31 @@ func (i Instruction) Result() (int) {
 		}
 	}
 	return val
+}
+
+func (i Instruction) GetAddresses() ([]int) {
+	var address int
+	var floaters []int
+	for p := 0; p < len(i.Mask); p++ {
+		mChar := i.Mask[len(i.Mask)-p-1]
+		if mChar == 'X' {
+			floaters = append(floaters, p)
+		}
+		if mChar == '1' {
+			address |= TwoPow(p)
+		}
+		if mChar == '0' {
+			address |= i.Address & TwoPow(p)
+		}
+	}
+	addresses := []int{address}
+	for _, f := range floaters {
+		count := len(addresses)
+		for i := 0; i < count; i++ {
+			addresses = append(addresses, addresses[i] | TwoPow(f))
+		}
+	}
+	return addresses
 }
 
 func TwoPow(n int) int {

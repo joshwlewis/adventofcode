@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -13,14 +14,32 @@ func TestTwoPow(t *testing.T) {
 	}
 }
 
-func TestInstructionResult(t *testing.T) {
+func TestInstructionGetValue(t *testing.T) {
 	i := Instruction{
-		Mask: "1XXXX0X",
+		Mask:  "1XXXX0X",
 		Value: 11,
 	}
-	got := i.Result()
+	got := i.GetValue()
 	want := 73
 	if got != want {
 		t.Errorf("wanted %d, got %d", want, got)
+	}
+}
+
+func TestInstructionGetAddresses(t *testing.T) {
+	i := Instruction{
+		Mask:    "X1001X",
+		Address: 42,
+	}
+	gots := i.GetAddresses()
+	wants := []int{26, 27, 58, 59}
+	fmt.Println("Gots", gots)
+	if len(gots) != len(wants) {
+		t.Errorf("Wanted len %d, got len %d", len(wants), len(gots))
+	}
+	for i, want := range wants {
+		if gots[i] != want {
+			t.Errorf("wanted %d, got %d", want, gots[i])
+		}
 	}
 }
