@@ -4,9 +4,6 @@ import "fmt"
 
 func main() {
 	ns := []int{16, 1, 0, 18, 12, 14, 19}
-	// ns := []int{3,1,2}
-	// p1 := Say(10, ns)
-	// fmt.Println("10th number", p1)
 	p2 := Say(2020, ns)
 	fmt.Println("2020th number", p2)
 	p3 := Say(30000000, ns)
@@ -28,12 +25,12 @@ func Say(i int, nums []int) (num int) {
 				curNum = 0
 			}
 		}
-		cache[prevNum] = j-1
+		cache[prevNum] = j - 1
 	}
 	return curNum
 }
 
-func say(i int, nums []int, cache map[int]int) (int) {
+func say(i int, nums []int, cache map[int]int) int {
 	if i == 1 {
 		return nums[i-1]
 	}
@@ -48,7 +45,6 @@ func say(i int, nums []int, cache map[int]int) (int) {
 			curNum = 0
 		}
 	}
-	cache[prevNum] = i-1
-	// fmt.Println("i/cur/cache", i, curNum, cache)
+	cache[prevNum] = i - 1
 	return curNum
 }
