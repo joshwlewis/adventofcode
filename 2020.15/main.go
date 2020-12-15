@@ -29,22 +29,3 @@ func Say(i int, nums []int) (num int) {
 	}
 	return curNum
 }
-
-func say(i int, nums []int, cache map[int]int) int {
-	if i == 1 {
-		return nums[i-1]
-	}
-	var curNum, prevNum int
-	prevNum = say(i-1, nums, cache)
-	if i <= len(nums) {
-		curNum = nums[i-1]
-	} else {
-		if iPrev, ok := cache[prevNum]; ok {
-			curNum = i - iPrev - 1
-		} else {
-			curNum = 0
-		}
-	}
-	cache[prevNum] = i - 1
-	return curNum
-}
