@@ -16,42 +16,83 @@ func main() {
 		panic(fmt.Sprintf("could not open input.txt: %s", err))
 	}
 	defer f.Close()
-	gamma, epsilon := GetRates(f)
-	power := gamma * epsilon
-	fmt.Printf("Gamma: %d, Epsilon: %d, Power: %d\n", gamma, epsilon, power)
+	diagnostics, width := ReadDiagnostics(f);
+	gamma, epsilon := GetPowerRates(diagnostics, width)
+	p_rating := gamma * epsilon
+	fmt.Printf("POWER --> Gamma: %d, Epsilon: %d, Rating: %d\n", gamma, epsilon, p_rating)
+	o2, co2 := GetLifeSupportRates(diagnostics, width)
+	ls_rating := o2 * co2;
+	fmt.Printf("LIFE SUPPORT --> O2: %d, CO2: %d, Rating: %d\n", o2, co2, ls_rating);
 }
 
-func GetRates(input io.Reader) (gamma int64, epsilon int64) {
-	var sum []int64
-	entries := int64(0)
+func ReadDiagnostics(input io.Reader) (diagnostics []int, width int) {
 	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
-		entries++
 		entry := scanner.Text()
-		num, err := strconv.ParseInt(entry, 2, 64)
+		num, err := strconv.ParseInt(entry, 2, 32)
 		if err != nil {
 			panic(fmt.Sprintf("could not parse number %s", err))
 		}
-		if len(sum) == 0 {
-			sum = make([]int64, len(entry))
+		if width == 0 {
+			width = len(entry)
 		}
+		diagnostics = append(diagnostics, int(num))
+	}
+	return diagnostics, width
+}
 
-		for i := 0; i < len(sum); i++ {
-			sum[i] += (num >> (len(sum)-i-1)) & 1
+func GetPowerRates(diagnostics []int, width int) (gamma int, epsilon int) {
+	return getCommons(diagnostics, 0, width, width)
+}
+
+func GetLifeSupportRates(diagnostics []int, width int) (o2 int, co2 int) {
+	o2 = findDiagnostic(diagnostics, width, 0);
+	co2 = findDiagnostic(diagnostics, width, 1);
+	return o2, co2
+}
+
+func getCommons(diagnostics []int, start, count, width int) (most, least int) {
+	sum := make([]int, count);
+	for _, num := range diagnostics {
+		for i := start; i < start+count; i++ {
+			sum[i-start] += (num >> (width-i-1)) & 1
 		}
 	}
 	for i, n := range sum {
-		if n < entries/2 {
+		if n*2 >= len(diagnostics) {
+			sum[i] = 1
+		} else {
 			sum[i] = 0
 		}
-		if n > entries/2 {
-			sum[i] = 1
-		}
 	}
-	gamma = 0
 	for _, n := range sum {
-		gamma = (gamma << 1) + int64(n)
+		most = (most << 1) + int(n)
 	}
-	epsilon = ^gamma & ((1 << len(sum)) - 1)
-	return gamma, epsilon
+	least = ^most & ((1 << count) - 1)
+	return most, least;
+}
+
+func findDiagnostic(diagnostics []int, width, mode int) (int) {
+	group := []int{}
+	last_group := diagnostics
+	for pos := 0; pos < width; pos++ {
+		o2filter, co2filter := getCommons(last_group, pos, 1, width)
+		var filter int;
+		if mode == 0 {
+			filter = o2filter;
+		} else {
+			filter = co2filter;
+		}
+		for _, n := range last_group {
+			if (n >> (width-pos-1)) & 1 == filter {
+				group = append(group, n)
+			}
+		}
+		if len(group) == 1 {
+			return group[0];
+		}
+		last_group = group;
+		group = []int{};
+	}
+	return 0;
 }
