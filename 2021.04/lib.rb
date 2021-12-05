@@ -1,3 +1,5 @@
+require 'set'
+
 module Bingo
   def self.build_game(input)
     numbers = []
@@ -35,13 +37,31 @@ module Bingo
       @locations = locations
       @row_marks = Array.new(map.count, 0)
       @col_marks = Array.new(map.count, 0)
+      @winners = Set.new()
     end
 
-    def play
-      (0..numbers.count).each do |turn|
-        play_turn(turn)
-        if winner = check_winner
-          return winner, numbers[turn]
+    def play_to_win
+      numbers.each do |num|
+        play_turn(num)
+        winners.each do |winner|
+          return winner, num
+        end
+      end
+    end
+
+    def play_to_lose
+      losing_board = nil
+      numbers.each do |num|
+        play_turn(num)
+        if winners.count == board_count - 1
+          (0...board_count).each do |board_num|
+            if !winners.include?(board_num)
+              losing_board = board_num
+            end
+          end
+        end
+        if winners.count == board_count
+          return losing_board, num
         end
       end
     end
@@ -49,7 +69,7 @@ module Bingo
     def score(board)
       rowstart = board*5
       sum = 0
-      (rowstart..rowstart+4).reduce(0) do |acc, r|
+      (rowstart...rowstart+5).reduce(0) do |acc, r|
         acc + map[r].compact.sum
       end
     end
@@ -57,25 +77,24 @@ module Bingo
     private
 
     attr_reader :numbers, :locations
-    attr_accessor :map, :row_marks, :col_marks
+    attr_accessor :map, :row_marks, :col_marks, :winners
 
-    def play_turn(i)
-      num = numbers[i]
-      locations[num].each do |loc|
-        map[loc.row][loc.col] = nil
-        row_marks[loc.row] += 1
-        col_marks[loc.col+((loc.row/5)*5)] += 1
-      end
+    def board_count
+      map.count / 5
     end
 
-    def check_winner
-      [row_marks, col_marks].each do |marks|
-        win_i = marks.find_index{|mc| mc >= 5}
-        if win_i
-          return win_i / 5
+    def play_turn(num)
+      locations[num].each do |loc|
+        board = loc.row/5
+        next if winners.include?(board)
+        map[loc.row][loc.col] = nil
+        row_marks[loc.row] += 1
+        col_num = (board*5) + loc.col
+        col_marks[col_num] += 1
+        if row_marks[loc.row] >= 5 || col_marks[col_num] >= 5
+          winners.add(board)
         end
       end
-      return nil
     end
   end
 

@@ -24,14 +24,24 @@ SAMPLE_DATA = <<~DATA
 DATA
 
 class BingoTest < Minitest::Test
-  def test_bingo
+  def test_bingo_win
     game = Bingo.build_game(SAMPLE_DATA)
-    winner, turn = game.play
+    winner, number = game.play_to_win
     assert_equal 2, winner
-    assert_equal 24, turn
+    assert_equal 24, number
 
     score = game.score(winner)
     assert_equal 188, score
+
+  end
+  def test_bingo_lose
+    game = Bingo.build_game(SAMPLE_DATA)
+    loser, number = game.play_to_lose
+    assert_equal 1, loser
+    assert_equal 13, number
+
+    score = game.score(loser)
+    assert_equal 148, score
   end
 end
 
