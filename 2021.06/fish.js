@@ -1,24 +1,37 @@
 export function parseFish(input) {
-  return input.split(',').map((s) => parseInt(s));
+  let fish = {};
+  for (let i=0; i <= 8; i++) {
+    fish[i] = 0;
+  }
+  input.split(',').map((s) => parseInt(s)).forEach((f) => {
+    fish[f]++
+  })
+  return fish;
 };
 
-function simulateDay(fish) {
-  let newFish = 0;
-  fish.forEach((f,i) => {
-    if (f === 0) {
-      newFish++;
-      fish[i] = 6;
-    } else {
-      fish[i]--;
-    }
-  });
-  for (let i = 0; i < newFish; i++) {
-    fish.push(8);
+function simulateDay(oldFish) {
+  let newFish = {};
+  newFish[8] = oldFish[0]
+  newFish[7] = oldFish[8]
+  newFish[6] = oldFish[0] + oldFish[7]
+  for (let i=0; i <= 5; i++) {
+    newFish[i] = oldFish[i+1]
   }
+  return newFish;
 }
 
 export function simulateDays(fish, n) {
   for (let i=0; i < n; i++) {
-    simulateDay(fish);
+    fish = simulateDay(fish);
   }
+  return fish;
 }
+
+export function countFish(fish) {
+  let sum = 0;
+  for (let i=0; i <= 8; i++) {
+    sum += fish[i];
+  }
+  return sum;
+}
+
