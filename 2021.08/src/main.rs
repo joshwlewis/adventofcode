@@ -11,7 +11,7 @@ fn main() {
     };
     let input = fs::read_to_string(filename).expect("Error opening input file");
     let segment_data = parse_segment_data(input).unwrap();
-    let count_1478 = count_1478_output(&segment_data);
+    let count_1478 = count_1478_output(segment_data.clone());
     println!("1478 Output Count: {}", count_1478);
     let sum = sum_outputs(segment_data);
     println!("Output Sum: {}", sum);
@@ -19,20 +19,20 @@ fn main() {
 
 fn parse_segment_data(input: String) -> Result<SegmentData, ParseIntError> {
     let mut seg_data: SegmentData = vec![];
-    for segment_str in input.split("\n") {
-        if segment_str == "" {
+    for segment_str in input.split('\n') {
+        if segment_str.is_empty() {
             continue
         }
         let seg = segment_str.parse::<Segment>()?;
         seg_data.push(seg);
     }
-    return Ok(seg_data);
+    Ok(seg_data)
 }
 
-fn count_1478_output(segments: &SegmentData) -> usize {
+fn count_1478_output(segments: SegmentData) -> usize {
     segments.iter().map(|seg| seg.outputs.iter().filter(|d| {
-            let c = d.count();
-            return c == 2 || c == 3 || c == 4 || c == 7;
+        let c = d.count();
+        c == 2 || c == 3 || c == 4 || c == 7
     }).count()).sum()
 }
 
@@ -44,12 +44,12 @@ fn sum_outputs(segments: SegmentData) -> usize {
         let mut outputs = seg.outputs.clone();
         outputs.reverse();
         for (i, d) in outputs.iter().enumerate() {
-            match digit_map.get(&d) {
+            match digit_map.get(d) {
                 Some(val) => { sum += ten.pow(i as u32) * val; },
                 None => { panic!("didn't find {:?} in key {:?} for signal {:?}", d, digit_map, seg.signals) },
             }
         }
-        return sum;
+        sum
     }).sum()
 }
 
@@ -89,13 +89,13 @@ fn get_digit_map(signals: &[Digit; 10]) -> HashMap<Digit, usize> {
         };
         digit_map.insert(d.clone(), val);
     }
-    return digit_map;
+    digit_map
 }
 
 
 type SegmentData = Vec<Segment>;
 
-#[derive(PartialEq, Eq, Hash, Debug)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 struct Segment {
     signals: [Digit; 10],
     outputs: [Digit; 4],
@@ -109,25 +109,19 @@ impl FromStr for Segment {
     type Err = ParseIntError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut halves = s.split(" | ");
-        let signals_str = match halves.next() {
-            Some(s) => s,
-            None => "",
-        };
+        let signals_str = halves.next().unwrap_or("");
         let mut signals: [Digit; 10] = [DEFAULT_DIGIT; 10];
         for (i, s) in signals_str.split(' ').enumerate() {
             let digit = s.parse::<Digit>()?;
             signals[i] = digit;
         }
-        let digits_str = match halves.next() {
-            Some(s) => s,
-            None => "",
-        };
+        let digits_str = halves.next().unwrap_or("");
         let mut outputs: [Digit; 4] = [DEFAULT_DIGIT; 4];
         for (i,s) in digits_str.split(' ').enumerate() {
             let digit = s.parse::<Digit>()?;
             outputs[i] = digit;
         }
-        return Ok(Segment { signals, outputs })
+        Ok(Segment { signals, outputs })
     }
 }
 impl Digit {
@@ -142,7 +136,7 @@ impl Digit {
                 missing += 1
             }
         }
-        return missing;
+        missing
     }
 }
 
@@ -153,8 +147,8 @@ impl FromStr for Digit {
         let mut chars = s.chars()
             .filter(|c| c.is_alphabetic() && c.is_lowercase())
             .collect::<Vec<char>>();
-        chars.sort();
+        chars.sort_unstable();
         let ds: String = chars.iter().collect();
-        return Ok(Digit{ s: ds })
+        Ok(Digit{ s: ds })
     }
 }
